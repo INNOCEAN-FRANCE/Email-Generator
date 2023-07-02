@@ -25,6 +25,9 @@ import '@arco-themes/react-easy-email-theme-purple/css/arco.css';
 import {useWindowSize} from 'react-use'
 
 import './CustomBlocks';
+import { CustomBlocksType } from './CustomBlocks/constants';
+
+import JSZip from 'jszip';
 
 const fontList = [
   'Arial',
@@ -52,6 +55,9 @@ const categories: ExtensionProps['categories'] = [
     blocks: [
       {
         type: AdvancedType.TEXT,
+      },
+      {
+        type: CustomBlocksType.MY_FIRST_BLOCK
       },
       {
         type: AdvancedType.IMAGE,
@@ -128,19 +134,39 @@ export default function Editor() {
 
   const smallScene = width < 1400;
 
-  const onCopyHtml = (values: IEmailTemplate) => {
-    const html = mjml(JsonToMjml({
+  const onExportZip = (values: IEmailTemplate) => {
+    const mjmlContent = JsonToMjml({
       data: values.content,
       mode: 'production',
       context: values.content
-    }), {
+    });
+  
+    const htmlContent = mjml(mjmlContent, {
       beautify: true,
       validationLevel: 'soft',
     }).html;
-
-    copy(html);
-    message.success('Copied to pasteboard!')
+  
+    const zip = new JSZip();
+    zip.file('email.mjml', mjmlContent);
+    zip.file('email.html', htmlContent);
+  
+    zip.generateAsync({ type: 'blob' })
+      .then((content) => {
+        const element = document.createElement('a');
+        element.href = URL.createObjectURL(content);
+        element.download = 'email.zip';
+        document.body.appendChild(element);
+        element.click();
+        document.body.removeChild(element);
+  
+        message.success('ZIP downloaded!');
+      })
+      .catch((error) => {
+        console.error('Error creating ZIP file:', error);
+        message.error('Failed to create ZIP file.');
+      });
   };
+  
 
   const onImportMjml = async () => {
     try {
@@ -152,15 +178,7 @@ export default function Editor() {
     }
   };
 
-  const onExportMjml = (values: IEmailTemplate) => {
-    exportTemplate(
-      downloadFileName,
-      JsonToMjml({
-        data: values.content,
-        mode: 'production',
-        context: values.content
-      }))
-  };
+  
 
   const onSubmit = useCallback(
     async (
@@ -206,14 +224,14 @@ export default function Editor() {
                 title='Edit'
                 extra={
                   <Stack alignment="center">
-                    <Button onClick={() => onCopyHtml(values)}>
-                      Copy Html
+                    <Button onClick={() => onExportZip(values)}>
+                      Download Zip
                     </Button>
-                    <Button onClick={() => onExportMjml(values)}>
+                    {/* <Button onClick={() => onExportMjml(values)}>
                       Export Template
-                    </Button>
+                    </Button> */}
                     <Button onClick={onImportMjml}>
-                      import Template
+                      import Template MJML
                     </Button>
                     <Button
                       type='primary'
