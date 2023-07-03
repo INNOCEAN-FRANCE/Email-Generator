@@ -67,6 +67,9 @@ const categories: ExtensionProps['categories'] = [
         type: AdvancedType.BUTTON,
       },
       {
+        type: BasicType.TABLE,
+      },
+      {
         type: AdvancedType.SOCIAL,
       },
       {
